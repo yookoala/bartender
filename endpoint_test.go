@@ -42,13 +42,13 @@ func TestEndpoint(t *testing.T) {
 	var ctx context.Context
 	fp, err := Endpoint(f2(2))
 	if err != nil {
-		t.Errorf("Error running Endpoint(f2(2))", err.Error())
+		t.Errorf("Error running Endpoint(f2(2)). %s", err.Error())
 		return
 	}
 
 	resp, err := fp(ctx, 3)
 	if err != nil {
-		t.Errorf("Error running f2(2)(3)", err.Error())
+		t.Errorf("Error running f2(2)(3). %s", err.Error())
 	} else if resp != 9 {
 		t.Errorf("Endpoint test with f2(2)(3) failed. Expected %d but get %#v", 9, resp)
 	} else {
