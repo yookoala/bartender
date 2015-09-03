@@ -34,11 +34,13 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 	if n := fnt.NumIn(); n != 1 {
 		err = fmt.Errorf("Given function acceptEndpoint functions accepts only 1 argument. Given function has %d", n)
 		// TODO: should allow to take context.Context as input, too
+		return
 	}
 
 	if n := fnt.NumOut(); n != 2 {
 		err = fmt.Errorf("Given function returns too many parameters (%d). Should be 2", n)
 		// TODO: might accept lesser return parameter (e.g. no error or not output)
+		return
 	}
 
 	if out2 := fnt.Out(1); !isTypeError(out2) {
