@@ -30,19 +30,36 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 		// TODO: might accept lesser return parameter (e.g. no error or not output)
 	}
 
-	// TODO: rewrite `pass` into `call`
+	// type of request
+	reqt := fnt.In(0)
+
+	// need to call fn using fnv.Call
+	fnv := reflect.ValueOf(fn)
+
+	// reflect on endpoint
+	et := reflect.TypeOf(e)
+	respt := et.Out(0)
+	//errt := et.Out(1)
+
+	// TODO:
 	// -> to examine if the input values type
 	//    and return error if mismatch
-	// -> to call fn with input values,
-	//    then return the output to the output values
-	pass := func(in []reflect.Value) []reflect.Value {
+	callFn := func(in []reflect.Value) []reflect.Value {
 
-		// temp: construct an empty error variable
-		// and return its value
-		var errVar error
-		err := reflect.ValueOf(&errVar).Elem()
+		// TODO: test if the input variable
+		//       match the type of request
 
-		return []reflect.Value{in[1], err} // pass the request to response
+		// set the input variable to typed variable
+		reqv := reflect.New(reqt)
+		reqv.Elem().Set(in[1].Elem())
+		out := fnv.Call([]reflect.Value{reqv.Elem()})
+
+		// cast the output variable's address
+		// into an empty interface
+		respv := reflect.New(respt)
+		respv.Elem().Set(out[0])
+
+		return []reflect.Value{respv.Elem(), out[1]}
 	}
 
 	makeEndpoint := func(fin, fpout interface{}) {
@@ -52,7 +69,7 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 		fn := reflect.ValueOf(fpout).Elem()
 
 		// Make a function of the right type.
-		v := reflect.MakeFunc(fn.Type(), pass)
+		v := reflect.MakeFunc(fn.Type(), callFn)
 
 		// Assign it to the value fn represents.
 		fn.Set(v)
