@@ -1,9 +1,12 @@
 package bartender
 
 import (
-	"fmt"
-	"golang.org/x/net/context"
 	"testing"
+
+	"fmt"
+	"reflect"
+
+	"golang.org/x/net/context"
 )
 
 func f1(op string, i, j int) (k int, err error) {
@@ -53,5 +56,53 @@ func TestEndpoint(t *testing.T) {
 		t.Errorf("Endpoint test with f2(2)(3) failed. Expected %d but get %#v", 9, resp)
 	} else {
 		t.Log("Endpoint test with f2(2)(3) success.")
+	}
+}
+
+type testErr int
+
+func (e *testErr) Error() string {
+	return "test error"
+}
+
+func Test_temp(t *testing.T) {
+	var x error
+	t.Logf("type: %v", reflect.TypeOf(x))
+}
+
+func Test_isTypeError(t *testing.T) {
+
+	var err1 error
+	var err2 *testErr
+	var i int
+
+	if isTypeError(reflect.TypeOf(&err1).Elem()) {
+		t.Log("Passed test 1")
+	} else {
+		t.Error("Failed to identify error type as error")
+	}
+
+	if !isTypeError(reflect.TypeOf(&err2).Elem()) {
+		t.Log("Passed test 2")
+	} else {
+		t.Error("Failed to identify type implements error as not error")
+	}
+
+	if !isTypeError(reflect.TypeOf(&i).Elem()) {
+		t.Log("Passed test 3")
+	} else {
+		t.Error("Failed to identify integer as not error")
+	}
+
+}
+
+func TestEndpoint_OutputMismatch(t *testing.T) {
+	_, err := Endpoint(func(in int) (out1, out2 int) {
+		return 1, 2
+	})
+	if err != nil && err.Error() == "Second return parameter is not error" {
+		t.Log("Detects second parameter is not error")
+	} else {
+		t.Errorf("Failed to detect input function problem")
 	}
 }

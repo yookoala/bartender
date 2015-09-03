@@ -7,8 +7,19 @@ import (
 	"github.com/go-kit/kit/endpoint"
 )
 
+var errorType reflect.Type
+
+func init() {
+	var err error
+	errorType = reflect.TypeOf(&err).Elem()
+}
+
 func isFunc(v interface{}) bool {
 	return reflect.TypeOf(v).Kind() == reflect.Func
+}
+
+func isTypeError(t reflect.Type) bool {
+	return t.String() == "error"
 }
 
 // Endpoint wraps a provided function and returns
@@ -28,6 +39,11 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 	if n := fnt.NumOut(); n != 2 {
 		err = fmt.Errorf("Given function returns too many parameters (%d). Should be 2", n)
 		// TODO: might accept lesser return parameter (e.g. no error or not output)
+	}
+
+	if out2 := fnt.Out(1); !isTypeError(out2) {
+		err = fmt.Errorf("Second return parameter is not error")
+		return
 	}
 
 	// type of request
