@@ -4,14 +4,22 @@ import (
 	"fmt"
 	"reflect"
 
+	"golang.org/x/net/context"
+
 	"github.com/go-kit/kit/endpoint"
+
+	"log"
 )
 
 var errorType reflect.Type
 
+var ctxType reflect.Type
+
 func init() {
 	var err error
+	var ctx context.Context
 	errorType = reflect.TypeOf(&err).Elem()
+	ctxType = reflect.TypeOf(&ctx).Elem()
 }
 
 func isFunc(v interface{}) bool {
@@ -23,10 +31,20 @@ func isTypeError(t reflect.Type) bool {
 }
 
 func validEndpointIn(fnt *reflect.Type) (err error) {
-	if n := (*fnt).NumIn(); n != 1 {
-		err = fmt.Errorf("Given function acceptEndpoint functions accepts only 1 argument. Given function has %d", n)
-		// TODO: should allow to take context.Context as input, too
+	n := (*fnt).NumIn()
+	if n == 0 || n > 2 {
+		err = fmt.Errorf("Given function acceptEndpoint functions accepts 1 argument or context + 1 argument.\n"+
+			"Given function has %d", n)
 		return
+	}
+
+	// if there is 2 argument, the first one must be context
+	if n == 2 {
+		if t := (*fnt).In(0); t != ctxType {
+			log.Printf("t = %#v", t)
+			log.Printf("ctxType = %#v", ctxType)
+			err = fmt.Errorf("first argument of input must be context.Context. Not %s", t)
+		}
 	}
 	return
 }
@@ -84,7 +102,8 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 	}
 
 	// type of request
-	reqt := fnt.In(0)
+	numIn := fnt.NumIn()
+	reqt := fnt.In(numIn - 1)
 
 	// need to call fn using fnv.Call
 	fnv := reflect.ValueOf(fn)
@@ -105,7 +124,15 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 		// set the input variable to typed variable
 		reqv := reflect.New(reqt)
 		reqv.Elem().Set(in[1].Elem())
-		out := fnv.Call([]reflect.Value{reqv.Elem()})
+		var out []reflect.Value
+
+		if numIn == 1 {
+			// single argument
+			out = fnv.Call([]reflect.Value{reqv.Elem()})
+		} else {
+			// context + 1 argument
+			out = fnv.Call([]reflect.Value{in[0], reqv.Elem()})
+		}
 
 		// cast the output variable's address
 		// into an empty interface
