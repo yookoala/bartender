@@ -22,6 +22,29 @@ func isTypeError(t reflect.Type) bool {
 	return t.String() == "error"
 }
 
+func validEndpointIn(fnt *reflect.Type) (err error) {
+	if n := (*fnt).NumIn(); n != 1 {
+		err = fmt.Errorf("Given function acceptEndpoint functions accepts only 1 argument. Given function has %d", n)
+		// TODO: should allow to take context.Context as input, too
+		return
+	}
+	return
+}
+
+func validEndpointOut(fnt *reflect.Type) (err error) {
+	if n := (*fnt).NumOut(); n != 2 {
+		err = fmt.Errorf("Given function returns too many parameters (%d). Should be 2", n)
+		// TODO: might accept lesser return parameter (e.g. no error or not output)
+		return
+	}
+
+	if out2 := (*fnt).Out(1); !isTypeError(out2) {
+		err = fmt.Errorf("Second return parameter is not error")
+		return
+	}
+	return
+}
+
 // validEndpoint returns the reflect.Type of the given fn
 // and error if the fn is not valid for casting as Endpoint
 func validEndpoint(fn interface{}) (fnt reflect.Type, err error) {
@@ -32,20 +55,11 @@ func validEndpoint(fn interface{}) (fnt reflect.Type, err error) {
 	}
 	fnt = reflect.TypeOf(fn)
 
-	if n := fnt.NumIn(); n != 1 {
-		err = fmt.Errorf("Given function acceptEndpoint functions accepts only 1 argument. Given function has %d", n)
-		// TODO: should allow to take context.Context as input, too
+	if err = validEndpointIn(&fnt); err != nil {
 		return
 	}
 
-	if n := fnt.NumOut(); n != 2 {
-		err = fmt.Errorf("Given function returns too many parameters (%d). Should be 2", n)
-		// TODO: might accept lesser return parameter (e.g. no error or not output)
-		return
-	}
-
-	if out2 := fnt.Out(1); !isTypeError(out2) {
-		err = fmt.Errorf("Second return parameter is not error")
+	if err = validEndpointOut(&fnt); err != nil {
 		return
 	}
 
