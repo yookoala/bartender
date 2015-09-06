@@ -22,14 +22,15 @@ func isTypeError(t reflect.Type) bool {
 	return t.String() == "error"
 }
 
-// Endpoint wraps a provided function and returns
-// a valid go-kit Endpoint
-func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
+// validEndpoint returns the reflect.Type of the given fn
+// and error if the fn is not valid for casting as Endpoint
+func validEndpoint(fn interface{}) (fnt reflect.Type, err error) {
+
 	if !isFunc(fn) {
 		err = fmt.Errorf("input is not a function: %#v", fn)
 		return
 	}
-	fnt := reflect.TypeOf(fn)
+	fnt = reflect.TypeOf(fn)
 
 	if n := fnt.NumIn(); n != 1 {
 		err = fmt.Errorf("Given function acceptEndpoint functions accepts only 1 argument. Given function has %d", n)
@@ -45,6 +46,26 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 
 	if out2 := fnt.Out(1); !isTypeError(out2) {
 		err = fmt.Errorf("Second return parameter is not error")
+		return
+	}
+
+	return
+}
+
+// CanEndpoint test if a function can be cast as Endpoint
+func CanEndpoint(fn interface{}) bool {
+	if _, err := validEndpoint(fn); err != nil {
+		return false
+	}
+	return true
+}
+
+// Endpoint wraps a provided function and returns
+// a valid go-kit Endpoint
+func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
+
+	var fnt reflect.Type
+	if fnt, err = validEndpoint(fn); err != nil {
 		return
 	}
 

@@ -41,6 +41,20 @@ func f2(pow int) (fn func(i int) (j int, err error)) {
 
 }
 
+type testErr int
+
+func (e *testErr) Error() string {
+	return "test error"
+}
+
+func Test_validEndpoint(t *testing.T) {
+	if _, err := validEndpoint(f1); err == nil {
+		t.Error("Failed to catch casting error")
+	} else {
+		t.Log("validEndpoint catches casting error")
+	}
+}
+
 func TestEndpoint(t *testing.T) {
 	var ctx context.Context
 	fp, err := Endpoint(f2(2))
@@ -57,12 +71,6 @@ func TestEndpoint(t *testing.T) {
 	} else {
 		t.Log("Endpoint test with f2(2)(3) success.")
 	}
-}
-
-type testErr int
-
-func (e *testErr) Error() string {
-	return "test error"
 }
 
 func Test_temp(t *testing.T) {
