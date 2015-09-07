@@ -7,8 +7,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/go-kit/kit/endpoint"
-
-	"log"
 )
 
 var errorType reflect.Type
@@ -41,8 +39,6 @@ func validEndpointIn(fnt *reflect.Type) (err error) {
 	// if there is 2 argument, the first one must be context
 	if n == 2 {
 		if t := (*fnt).In(0); t != ctxType {
-			log.Printf("t = %#v", t)
-			log.Printf("ctxType = %#v", ctxType)
 			err = fmt.Errorf("first argument of input must be context.Context. Not %s", t)
 		}
 	}
