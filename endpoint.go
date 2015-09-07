@@ -122,24 +122,25 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 		//       match the type of request
 
 		// set the input variable to typed variable
-		reqv := reflect.New(reqt)
-		reqv.Elem().Set(in[1].Elem())
+		reqv := assignType(in[1].Elem(), reqt)
 		var out []reflect.Value
 
+		// recast request argument
 		if numIn == 1 {
 			// single argument
-			out = fnv.Call([]reflect.Value{reqv.Elem()})
+			in = []reflect.Value{reqv.Elem()}
 		} else {
 			// context + 1 argument
-			out = fnv.Call([]reflect.Value{in[0], reqv.Elem()})
+			in[1] = reqv.Elem()
 		}
 
-		// cast the output variable's address
-		// into an empty interface
-		respv := reflect.New(respt)
-		respv.Elem().Set(out[0])
+		// call the function
+		out = fnv.Call(in)
 
-		return []reflect.Value{respv.Elem(), out[1]}
+		// recast response argument
+		out[0] = assignType(out[0], respt).Elem()
+
+		return out
 	}
 
 	makeEndpoint := func(fin, fpout interface{}) {

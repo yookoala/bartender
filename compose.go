@@ -70,6 +70,14 @@ func canConnect(from, to interface{}) bool {
 	return true
 }
 
+// assignType assign a given value into a
+// new value of given type
+func assignType(in reflect.Value, t reflect.Type) (out reflect.Value) {
+	out = reflect.New(t)
+	out.Elem().Set(in)
+	return
+}
+
 // Compose takes multiple functions and compose them into a single
 // endpoint. The functions will be called in the order of input.
 // The rule to valid compose:
@@ -148,10 +156,9 @@ func Compose(fns ...interface{}) (e endpoint.Endpoint, err error) {
 		var work []reflect.Value
 
 		// recast request as type of first function request
-		reqv := reflect.New(reqt)
-		reqv.Elem().Set(in[1].Elem())
+		in[1] = assignType(in[1].Elem(), reqt).Elem()
+		work = in
 
-		work = []reflect.Value{in[0], reqv.Elem()}
 		for i := range fnvs {
 			log.Printf("run here %d", i)
 
@@ -159,9 +166,7 @@ func Compose(fns ...interface{}) (e endpoint.Endpoint, err error) {
 		}
 
 		// recast last response as interface{}
-		respv := reflect.New(respt)
-		respv.Elem().Set(work[0])
-		work[0] = respv.Elem()
+		work[0] = assignType(work[0], respt).Elem()
 
 		return work
 	}
