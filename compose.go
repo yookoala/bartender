@@ -6,8 +6,6 @@ import (
 	"reflect"
 
 	"github.com/go-kit/kit/endpoint"
-
-	"log"
 )
 
 var errNumArgMismatch = errors.New("number of arguement(s) mismatch")
@@ -153,8 +151,6 @@ func Compose(fns ...interface{}) (e endpoint.Endpoint, err error) {
 
 		work = []reflect.Value{in[0], reqv.Elem()}
 		for i := range fnvs {
-			log.Printf("run here %d", i)
-
 			work = fnvs[i].Call(work)
 		}
 
