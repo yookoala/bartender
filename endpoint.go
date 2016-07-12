@@ -10,14 +10,21 @@ import (
 )
 
 var errorType reflect.Type
-
 var ctxType reflect.Type
+var castErrResp []reflect.Value
 
 func init() {
 	var err error
 	var ctx context.Context
+	var empty interface{}
 	errorType = reflect.TypeOf(&err).Elem()
 	ctxType = reflect.TypeOf(&ctx).Elem()
+	emptyVal := reflect.ValueOf(&empty).Elem()
+
+	castErrResp = []reflect.Value{
+		emptyVal,
+		reflect.ValueOf(endpoint.ErrBadCast),
+	}
 }
 
 func isFunc(v interface{}) bool {
@@ -80,6 +87,25 @@ func validEndpoint(fn interface{}) (fnt reflect.Type, err error) {
 	return
 }
 
+// assignEndpointIn transforming the endpoint input
+// to suit the given endpoint begining function
+func assignEndpointIn(in *[]reflect.Value, t reflect.Type, numIn int) (err error) {
+
+	// the second argument of Endpoint is request (interface{})
+	reqv := assignType((*in)[1].Elem(), t)
+
+	// recast request argument
+	if numIn == 1 {
+		// single argument
+		(*in) = []reflect.Value{reqv.Elem()}
+	} else {
+		// context + 1 argument
+		(*in)[1] = reqv.Elem()
+	}
+
+	return
+}
+
 // CanEndpoint test if a function can be cast as Endpoint
 func CanEndpoint(fn interface{}) bool {
 	if _, err := validEndpoint(fn); err != nil {
@@ -116,22 +142,15 @@ func Endpoint(fn interface{}) (e endpoint.Endpoint, err error) {
 
 		// TODO: test if the input variable
 		//       match the type of request
-
-		// set the input variable to typed variable
-		reqv := assignType(in[1].Elem(), reqt)
-		var out []reflect.Value
-
-		// recast request argument
-		if numIn == 1 {
-			// single argument
-			in = []reflect.Value{reqv.Elem()}
-		} else {
-			// context + 1 argument
-			in[1] = reqv.Elem()
+		if err := validAssign(&in[0].Type(), reqt.Elem(), numIn-1); err != nil {
+			return castErrResp
 		}
 
+		// recast request argument
+		assignEndpointIn(&in, reqt, numIn)
+
 		// call the function
-		out = fnv.Call(in)
+		out := fnv.Call(in)
 
 		// recast response argument
 		out[0] = assignType(out[0], respt).Elem()
